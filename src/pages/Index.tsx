@@ -77,6 +77,8 @@ const Index = () => {
     await streamAnalysis({
       extractedData,
       chartOfAccounts: fullChartOfAccounts || undefined,
+      files,
+      chartFiles,
       onDelta: (text) => {
         setAnalysisContent((prev) => prev + text);
       },
