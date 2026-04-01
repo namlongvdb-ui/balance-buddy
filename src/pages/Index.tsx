@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import FileUploadZone from "@/components/FileUploadZone";
 import AnalysisResult from "@/components/AnalysisResult";
+import FollowUpInput from "@/components/FollowUpInput";
 import { streamAnalysis } from "@/lib/streamChat";
+import { streamFollowUp, ChatMessage } from "@/lib/streamFollowUp";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
