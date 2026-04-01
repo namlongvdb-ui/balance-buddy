@@ -64,9 +64,19 @@ const Index = () => {
 
     const extractedData = await extractTextFromFiles();
 
+    // Build chart of accounts from text + uploaded files
+    let fullChartOfAccounts = chartOfAccounts || "";
+    if (chartFiles.length > 0) {
+      const chartTexts = await extractTextFromFileList(chartFiles);
+      const chartFileContent = chartTexts.join("\n\n");
+      fullChartOfAccounts = fullChartOfAccounts
+        ? `${fullChartOfAccounts}\n\n${chartFileContent}`
+        : chartFileContent;
+    }
+
     await streamAnalysis({
       extractedData,
-      chartOfAccounts: chartOfAccounts || undefined,
+      chartOfAccounts: fullChartOfAccounts || undefined,
       onDelta: (text) => {
         setAnalysisContent((prev) => prev + text);
       },
