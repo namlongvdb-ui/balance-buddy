@@ -148,6 +148,7 @@ const Index = () => {
                   placeholder="Hoặc nhập/dán hệ thống tài khoản kế toán tại đây...&#10;VD: 111 - Tiền mặt, 112 - Tiền gửi ngân hàng..."
                   className="min-h-[100px] text-sm resize-none"
                 />
+              </div>
             </div>
 
             {/* File upload */}
