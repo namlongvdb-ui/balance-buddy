@@ -124,13 +124,22 @@ Khi phân tích báo cáo cân đối kế toán, bạn cần:
 5. Đưa ra nhận xét về những điểm chưa hợp lý, sai sót tiềm ẩn
 6. Tư vấn cải thiện
 
+**QUAN TRỌNG - PHÂN TÍCH TÀI KHOẢN CHI TIẾT:**
+- Bạn PHẢI phân tích đến cấp tài khoản chi tiết (VD: 1111 - Tiền Việt Nam, 1112 - Ngoại tệ, 1121 - Tiền VNĐ gửi ngân hàng, 1122 - Ngoại tệ gửi ngân hàng, v.v.)
+- Không chỉ phân tích ở cấp tài khoản tổng hợp (111, 112, 131...) mà phải đi sâu vào từng tài khoản chi tiết cấp 2, cấp 3 nếu có dữ liệu
+- Kiểm tra số dư từng tài khoản chi tiết có hợp lý không, có phù hợp với bản chất tài khoản không
+- So sánh tỷ trọng giữa các tài khoản chi tiết trong cùng một tài khoản tổng hợp
+- Phát hiện các bất thường ở cấp chi tiết: số dư ngược chiều, giá trị quá lớn/nhỏ bất thường, tài khoản chi tiết không phù hợp
+
 Trả lời bằng tiếng Việt. Format output dạng Markdown với các section rõ ràng:
 ## 🔍 Kiểm tra cân đối
+## 📋 Phân tích theo tài khoản chi tiết
+(Liệt kê và phân tích từng nhóm tài khoản với các tài khoản chi tiết bên trong)
 ## ⚠️ Các vấn đề phát hiện
 ## 📊 Phân tích chỉ số tài chính
 ## 💡 Tư vấn và khuyến nghị
 
-Mỗi vấn đề cần nêu rõ: mã tài khoản, tên khoản mục, giá trị, lý do bất thường, và đề xuất xử lý.`;
+Mỗi vấn đề cần nêu rõ: mã tài khoản (bao gồm cả mã chi tiết), tên khoản mục, giá trị, lý do bất thường, và đề xuất xử lý.`;
 
     const userMessage = `Hãy phân tích báo cáo cân đối kế toán sau:
 
