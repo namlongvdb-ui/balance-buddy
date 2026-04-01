@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [chartOfAccounts, setChartOfAccounts] = useState("");
+  const [chartFiles, setChartFiles] = useState<File[]>([]);
   const [manualData, setManualData] = useState("");
   const [analysisContent, setAnalysisContent] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -23,21 +24,25 @@ const Index = () => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const extractTextFromFiles = async (): Promise<string> => {
+  const extractTextFromFileList = async (fileList: File[]): Promise<string[]> => {
     const texts: string[] = [];
-    for (const file of files) {
+    for (const file of fileList) {
       if (file.type === "text/csv" || file.name.endsWith(".csv")) {
         texts.push(await file.text());
       } else if (
         file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         file.type === "application/vnd.ms-excel"
       ) {
-        // For Excel files, read as text (basic extraction)
         texts.push(`[File Excel: ${file.name} - Vui lòng nhập dữ liệu thủ công bên dưới hoặc sử dụng file CSV]`);
       } else {
         texts.push(`[File: ${file.name} - ${file.type}]`);
       }
     }
+    return texts;
+  };
+
+  const extractTextFromFiles = async (): Promise<string> => {
+    const texts = await extractTextFromFileList(files);
     if (manualData.trim()) {
       texts.push(manualData);
     }
@@ -59,9 +64,19 @@ const Index = () => {
 
     const extractedData = await extractTextFromFiles();
 
+    // Build chart of accounts from text + uploaded files
+    let fullChartOfAccounts = chartOfAccounts || "";
+    if (chartFiles.length > 0) {
+      const chartTexts = await extractTextFromFileList(chartFiles);
+      const chartFileContent = chartTexts.join("\n\n");
+      fullChartOfAccounts = fullChartOfAccounts
+        ? `${fullChartOfAccounts}\n\n${chartFileContent}`
+        : chartFileContent;
+    }
+
     await streamAnalysis({
       extractedData,
-      chartOfAccounts: chartOfAccounts || undefined,
+      chartOfAccounts: fullChartOfAccounts || undefined,
       onDelta: (text) => {
         setAnalysisContent((prev) => prev + text);
       },
@@ -81,6 +96,7 @@ const Index = () => {
 
   const handleReset = () => {
     setFiles([]);
+    setChartFiles([]);
     setManualData("");
     setAnalysisContent("");
     setChartOfAccounts("");
@@ -119,14 +135,20 @@ const Index = () => {
                 <h2 className="font-heading font-semibold text-foreground">
                   Hệ thống tài khoản kế toán
                 </h2>
-                <span className="text-xs text-muted-foreground ml-auto">Không bắt buộc</span>
               </div>
-              <Textarea
-                value={chartOfAccounts}
-                onChange={(e) => setChartOfAccounts(e.target.value)}
-                placeholder="Nhập hoặc dán hệ thống tài khoản kế toán tại đây...&#10;VD: 111 - Tiền mặt, 112 - Tiền gửi ngân hàng..."
-                className="min-h-[100px] text-sm resize-none"
-              />
+              <div className="space-y-3">
+                <FileUploadZone
+                  files={chartFiles}
+                  onFilesSelected={(newFiles) => setChartFiles((prev) => [...prev, ...newFiles])}
+                  onRemoveFile={(index) => setChartFiles((prev) => prev.filter((_, i) => i !== index))}
+                />
+                <Textarea
+                  value={chartOfAccounts}
+                  onChange={(e) => setChartOfAccounts(e.target.value)}
+                  placeholder="Hoặc nhập/dán hệ thống tài khoản kế toán tại đây...&#10;VD: 111 - Tiền mặt, 112 - Tiền gửi ngân hàng..."
+                  className="min-h-[100px] text-sm resize-none"
+                />
+              </div>
             </div>
 
             {/* File upload */}
