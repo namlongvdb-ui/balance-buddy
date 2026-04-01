@@ -135,14 +135,19 @@ const Index = () => {
                 <h2 className="font-heading font-semibold text-foreground">
                   Hệ thống tài khoản kế toán
                 </h2>
-                <span className="text-xs text-muted-foreground ml-auto">Không bắt buộc</span>
               </div>
-              <Textarea
-                value={chartOfAccounts}
-                onChange={(e) => setChartOfAccounts(e.target.value)}
-                placeholder="Nhập hoặc dán hệ thống tài khoản kế toán tại đây...&#10;VD: 111 - Tiền mặt, 112 - Tiền gửi ngân hàng..."
-                className="min-h-[100px] text-sm resize-none"
-              />
+              <div className="space-y-3">
+                <FileUploadZone
+                  files={chartFiles}
+                  onFilesSelected={(newFiles) => setChartFiles((prev) => [...prev, ...newFiles])}
+                  onRemoveFile={(index) => setChartFiles((prev) => prev.filter((_, i) => i !== index))}
+                />
+                <Textarea
+                  value={chartOfAccounts}
+                  onChange={(e) => setChartOfAccounts(e.target.value)}
+                  placeholder="Hoặc nhập/dán hệ thống tài khoản kế toán tại đây...&#10;VD: 111 - Tiền mặt, 112 - Tiền gửi ngân hàng..."
+                  className="min-h-[100px] text-sm resize-none"
+                />
             </div>
 
             {/* File upload */}
