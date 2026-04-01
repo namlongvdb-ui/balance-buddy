@@ -96,6 +96,7 @@ const Index = () => {
 
   const handleReset = () => {
     setFiles([]);
+    setChartFiles([]);
     setManualData("");
     setAnalysisContent("");
     setChartOfAccounts("");
