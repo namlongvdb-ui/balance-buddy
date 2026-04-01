@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [chartOfAccounts, setChartOfAccounts] = useState("");
+  const [chartFiles, setChartFiles] = useState<File[]>([]);
   const [manualData, setManualData] = useState("");
   const [analysisContent, setAnalysisContent] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
