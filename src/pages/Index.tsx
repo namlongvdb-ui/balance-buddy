@@ -15,7 +15,10 @@ const Index = () => {
   const [chartFiles, setChartFiles] = useState<File[]>([]);
   const [manualData, setManualData] = useState("");
   const [analysisContent, setAnalysisContent] = useState("");
+  const [followUpResults, setFollowUpResults] = useState<{ question: string; answer: string }[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isFollowingUp, setIsFollowingUp] = useState(false);
   const { toast } = useToast();
 
   const handleFilesSelected = useCallback((newFiles: File[]) => {
