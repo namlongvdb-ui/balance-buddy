@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import FileUploadZone from "@/components/FileUploadZone";
 import AnalysisResult from "@/components/AnalysisResult";
+import FollowUpInput from "@/components/FollowUpInput";
 import { streamAnalysis } from "@/lib/streamChat";
+import { streamFollowUp, ChatMessage } from "@/lib/streamFollowUp";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -13,7 +15,10 @@ const Index = () => {
   const [chartFiles, setChartFiles] = useState<File[]>([]);
   const [manualData, setManualData] = useState("");
   const [analysisContent, setAnalysisContent] = useState("");
+  const [followUpResults, setFollowUpResults] = useState<{ question: string; answer: string }[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isFollowingUp, setIsFollowingUp] = useState(false);
   const { toast } = useToast();
 
   const handleFilesSelected = useCallback((newFiles: File[]) => {
@@ -84,9 +89,61 @@ const Index = () => {
       },
       onDone: () => {
         setIsAnalyzing(false);
+        // Save initial analysis to conversation history
+        setConversationHistory([]);
       },
       onError: (error) => {
         setIsAnalyzing(false);
+        toast({
+          title: "Lỗi phân tích",
+          description: error,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const handleFollowUp = async (question: string) => {
+    setIsFollowingUp(true);
+    
+    // Build conversation history including initial analysis
+    const history: ChatMessage[] = [
+      ...conversationHistory,
+    ];
+    if (history.length === 0 && analysisContent) {
+      history.push({ role: "assistant", content: analysisContent });
+    }
+
+    // Add new follow-up result placeholder
+    const newIndex = followUpResults.length;
+    setFollowUpResults((prev) => [...prev, { question, answer: "" }]);
+
+    await streamFollowUp({
+      conversationHistory: history,
+      followUpQuestion: question,
+      onDelta: (text) => {
+        setFollowUpResults((prev) => {
+          const updated = [...prev];
+          updated[newIndex] = { ...updated[newIndex], answer: updated[newIndex].answer + text };
+          return updated;
+        });
+      },
+      onDone: () => {
+        setIsFollowingUp(false);
+        // Update conversation history
+        setFollowUpResults((prev) => {
+          const latest = prev[newIndex];
+          setConversationHistory((ch) => [
+            ...ch,
+            ...(ch.length === 0 && analysisContent ? [{ role: "assistant" as const, content: analysisContent }] : []),
+            { role: "user" as const, content: question },
+            { role: "assistant" as const, content: latest.answer },
+          ]);
+          return prev;
+        });
+      },
+      onError: (error) => {
+        setIsFollowingUp(false);
         toast({
           title: "Lỗi phân tích",
           description: error,
@@ -102,6 +159,8 @@ const Index = () => {
     setManualData("");
     setAnalysisContent("");
     setChartOfAccounts("");
+    setFollowUpResults([]);
+    setConversationHistory([]);
   };
 
   return (
@@ -214,8 +273,27 @@ const Index = () => {
                 </p>
               </div>
             ) : (
-              <div className="sticky top-8">
+              <div className="space-y-4">
                 <AnalysisResult content={analysisContent} isLoading={isAnalyzing} />
+
+                {/* Follow-up results */}
+                {followUpResults.map((item, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="rounded-lg bg-primary/5 p-3 border border-primary/10">
+                      <span className="text-xs font-semibold text-primary">Yêu cầu thêm:</span>
+                      <p className="text-sm text-foreground mt-1">{item.question}</p>
+                    </div>
+                    <AnalysisResult
+                      content={item.answer}
+                      isLoading={isFollowingUp && i === followUpResults.length - 1 && !item.answer}
+                    />
+                  </div>
+                ))}
+
+                {/* Follow-up input */}
+                {analysisContent && !isAnalyzing && (
+                  <FollowUpInput onSubmit={handleFollowUp} isLoading={isFollowingUp} />
+                )}
               </div>
             )}
           </div>
