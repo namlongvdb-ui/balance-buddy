@@ -24,21 +24,25 @@ const Index = () => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const extractTextFromFiles = async (): Promise<string> => {
+  const extractTextFromFileList = async (fileList: File[]): Promise<string[]> => {
     const texts: string[] = [];
-    for (const file of files) {
+    for (const file of fileList) {
       if (file.type === "text/csv" || file.name.endsWith(".csv")) {
         texts.push(await file.text());
       } else if (
         file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         file.type === "application/vnd.ms-excel"
       ) {
-        // For Excel files, read as text (basic extraction)
         texts.push(`[File Excel: ${file.name} - Vui lòng nhập dữ liệu thủ công bên dưới hoặc sử dụng file CSV]`);
       } else {
         texts.push(`[File: ${file.name} - ${file.type}]`);
       }
     }
+    return texts;
+  };
+
+  const extractTextFromFiles = async (): Promise<string> => {
+    const texts = await extractTextFromFileList(files);
     if (manualData.trim()) {
       texts.push(manualData);
     }
