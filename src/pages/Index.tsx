@@ -89,9 +89,61 @@ const Index = () => {
       },
       onDone: () => {
         setIsAnalyzing(false);
+        // Save initial analysis to conversation history
+        setConversationHistory([]);
       },
       onError: (error) => {
         setIsAnalyzing(false);
+        toast({
+          title: "Lỗi phân tích",
+          description: error,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const handleFollowUp = async (question: string) => {
+    setIsFollowingUp(true);
+    
+    // Build conversation history including initial analysis
+    const history: ChatMessage[] = [
+      ...conversationHistory,
+    ];
+    if (history.length === 0 && analysisContent) {
+      history.push({ role: "assistant", content: analysisContent });
+    }
+
+    // Add new follow-up result placeholder
+    const newIndex = followUpResults.length;
+    setFollowUpResults((prev) => [...prev, { question, answer: "" }]);
+
+    await streamFollowUp({
+      conversationHistory: history,
+      followUpQuestion: question,
+      onDelta: (text) => {
+        setFollowUpResults((prev) => {
+          const updated = [...prev];
+          updated[newIndex] = { ...updated[newIndex], answer: updated[newIndex].answer + text };
+          return updated;
+        });
+      },
+      onDone: () => {
+        setIsFollowingUp(false);
+        // Update conversation history
+        setFollowUpResults((prev) => {
+          const latest = prev[newIndex];
+          setConversationHistory((ch) => [
+            ...ch,
+            ...(ch.length === 0 && analysisContent ? [{ role: "assistant" as const, content: analysisContent }] : []),
+            { role: "user" as const, content: question },
+            { role: "assistant" as const, content: latest.answer },
+          ]);
+          return prev;
+        });
+      },
+      onError: (error) => {
+        setIsFollowingUp(false);
         toast({
           title: "Lỗi phân tích",
           description: error,
@@ -107,6 +159,8 @@ const Index = () => {
     setManualData("");
     setAnalysisContent("");
     setChartOfAccounts("");
+    setFollowUpResults([]);
+    setConversationHistory([]);
   };
 
   return (
