@@ -273,8 +273,27 @@ const Index = () => {
                 </p>
               </div>
             ) : (
-              <div className="sticky top-8">
+              <div className="space-y-4">
                 <AnalysisResult content={analysisContent} isLoading={isAnalyzing} />
+
+                {/* Follow-up results */}
+                {followUpResults.map((item, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="rounded-lg bg-primary/5 p-3 border border-primary/10">
+                      <span className="text-xs font-semibold text-primary">Yêu cầu thêm:</span>
+                      <p className="text-sm text-foreground mt-1">{item.question}</p>
+                    </div>
+                    <AnalysisResult
+                      content={item.answer}
+                      isLoading={isFollowingUp && i === followUpResults.length - 1 && !item.answer}
+                    />
+                  </div>
+                ))}
+
+                {/* Follow-up input */}
+                {analysisContent && !isAnalyzing && (
+                  <FollowUpInput onSubmit={handleFollowUp} isLoading={isFollowingUp} />
+                )}
               </div>
             )}
           </div>
