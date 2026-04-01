@@ -1,26 +1,70 @@
 const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-balance-sheet`;
 
+interface FilePayload {
+  name: string;
+  mimeType: string;
+  base64: string;
+}
+
+async function fileToBase64(file: File): Promise<FilePayload> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return {
+    name: file.name,
+    mimeType: file.type || "application/octet-stream",
+    base64: btoa(binary),
+  };
+}
+
 export async function streamAnalysis({
   extractedData,
   chartOfAccounts,
+  files,
+  chartFiles,
   onDelta,
   onDone,
   onError,
 }: {
   extractedData: string;
   chartOfAccounts?: string;
+  files?: File[];
+  chartFiles?: File[];
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
 }) {
   try {
+    // Convert files to base64
+    const filePayloads: FilePayload[] = [];
+    if (files && files.length > 0) {
+      for (const f of files) {
+        filePayloads.push(await fileToBase64(f));
+      }
+    }
+
+    const chartFilePayloads: FilePayload[] = [];
+    if (chartFiles && chartFiles.length > 0) {
+      for (const f of chartFiles) {
+        chartFilePayloads.push(await fileToBase64(f));
+      }
+    }
+
     const resp = await fetch(ANALYZE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ extractedData, chartOfAccounts }),
+      body: JSON.stringify({
+        extractedData,
+        chartOfAccounts,
+        files: filePayloads,
+        chartFiles: chartFilePayloads,
+      }),
     });
 
     if (resp.status === 429) {
