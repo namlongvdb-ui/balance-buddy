@@ -1,4 +1,6 @@
-const FOLLOW_UP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/follow-up-analysis`;
+const FOLLOW_UP_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/follow-up-analysis`
+  : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/follow-up-analysis`;
 
 export interface ChatMessage {
   role: "user" | "assistant";

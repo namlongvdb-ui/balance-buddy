@@ -1,4 +1,6 @@
-const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-balance-sheet`;
+const ANALYZE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/analyze-balance-sheet`
+  : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-balance-sheet`;
 
 interface FilePayload {
   name: string;
