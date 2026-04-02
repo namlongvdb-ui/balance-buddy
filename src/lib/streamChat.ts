@@ -1,4 +1,6 @@
-const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-balance-sheet`;
+const ANALYZE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/analyze-balance-sheet`
+  : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-balance-sheet`;
 
 interface FilePayload {
   name: string;
@@ -57,7 +59,7 @@ export async function streamAnalysis({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        ...(import.meta.env.VITE_API_BASE_URL ? {} : { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }),
       },
       body: JSON.stringify({
         extractedData,
