@@ -59,7 +59,7 @@ export async function streamAnalysis({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        ...(import.meta.env.VITE_API_BASE_URL ? {} : { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }),
       },
       body: JSON.stringify({
         extractedData,
