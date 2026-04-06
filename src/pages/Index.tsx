@@ -179,6 +179,11 @@ const Index = () => {
               <p className="text-xs text-primary-foreground/70">
                 Hỗ trợ VAS & IFRS • AI phân tích chuyên sâu
               </p>
+              <div className="overflow-hidden mt-1">
+                <p className="text-xs text-primary-foreground/60 whitespace-nowrap animate-marquee">
+                  @Copyright by Trần Nam Long VDB - Chi nhánh KV Bắc Đông Bắc, PGD Cao Bằng
+                </p>
+              </div>
             </div>
           </div>
         </div>
