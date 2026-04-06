@@ -1,0 +1,19 @@
+{
+  "name": "balance-sheet-backend",
+  "version": "1.0.0",
+  "description": "Backend server phân tích cân đối kế toán - hỗ trợ proxy WAN",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:init": "node db-init.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.13.1"
+  }
+}
