@@ -3,13 +3,13 @@ const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 const { HttpsProxyAgent } = require("https-proxy-agent");
+const { extractTextFromFiles } = require("./file-extractor");
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 const HOST = process.env.HOST || "0.0.0.0";
 
 // ===== PROXY AGENT =====
-// Tạo proxy agent cho các request ra Internet (Google Gemini API)
 const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 const proxyAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : null;
 
@@ -41,9 +41,7 @@ function checkIP(req, res, next) {
   const normalizedIP = clientIP.replace("::ffff:", "");
   
   const allowed = ALLOWED_IPS.some((range) => {
-    if (range.includes("/")) {
-      return ipInCIDR(normalizedIP, range);
-    }
+    if (range.includes("/")) return ipInCIDR(normalizedIP, range);
     return normalizedIP === range;
   });
 
@@ -78,59 +76,10 @@ async function callGeminiAPI(body) {
     body: JSON.stringify(body),
   };
 
-  // SỬ DỤNG PROXY AGENT nếu có
-  if (proxyAgent) {
-    fetchOptions.agent = proxyAgent;
-  }
+  if (proxyAgent) fetchOptions.agent = proxyAgent;
 
-  // Node 18+ có sẵn fetch nhưng không hỗ trợ agent
-  // Dùng https module thông qua proxy agent
   const { default: fetch } = await import("node-fetch");
   return fetch(url, fetchOptions);
-}
-
-// ===== HELPER: Trích xuất nội dung file =====
-async function extractTextFromFiles(files, label) {
-  if (!files || files.length === 0) return "";
-
-  const content = [];
-  content.push({
-    type: "text",
-    text: `Trích xuất toàn bộ nội dung văn bản, số liệu, bảng biểu từ các file ${label} sau đây. Trả về đúng nội dung gốc, giữ nguyên cấu trúc bảng và số liệu. QUAN TRỌNG: Giữ nguyên 100% tất cả ngày tháng năm như trong file gốc, KHÔNG được thay đổi năm hay bất kỳ thành phần nào của ngày tháng. Ví dụ nếu file ghi "01/03/2026" thì phải trả về đúng "01/03/2026", KHÔNG được đổi thành 2023 hay bất kỳ năm nào khác. Chỉ trả về nội dung trích xuất, không thêm nhận xét.`,
-  });
-
-  for (const file of files) {
-    let mimeType = file.mimeType;
-    if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
-      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    } else if (file.name.endsWith(".docx")) {
-      mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    } else if (file.name.endsWith(".csv")) {
-      mimeType = "text/csv";
-    }
-
-    content.push({ type: "text", text: `\n--- File: ${file.name} ---` });
-    content.push({
-      type: "image_url",
-      image_url: { url: `data:${mimeType};base64,${file.base64}` },
-    });
-  }
-
-  const response = await callGeminiAPI({
-    model: "gemini-2.5-flash",
-    messages: [{ role: "user", content }],
-    stream: false,
-    max_tokens: 16000,
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`Lỗi trích xuất file ${label}:`, response.status, errText);
-    return `[Không thể trích xuất nội dung file ${label}: ${response.status}]`;
-  }
-
-  const result = await response.json();
-  return result.choices?.[0]?.message?.content || "";
 }
 
 // ===== API: Phân tích cân đối kế toán =====
@@ -140,7 +89,7 @@ app.post("/api/analyze-balance-sheet", async (req, res) => {
 
     console.log("📊 Bắt đầu phân tích báo cáo...");
 
-    // Trích xuất nội dung từ file
+    // TRÍCH XUẤT NỘI DUNG FILE TRÊN SERVER (không gửi cho AI)
     const [fileContent, chartFileContent] = await Promise.all([
       extractTextFromFiles(files || [], "báo cáo tài chính"),
       extractTextFromFiles(chartFiles || [], "hệ thống tài khoản"),
@@ -156,13 +105,22 @@ app.post("/api/analyze-balance-sheet", async (req, res) => {
     }
 
     if (!fullData.trim()) {
-      return res.status(400).json({ error: "Không có dữ liệu để phân tích" });
+      return res.status(400).json({ error: "Không có dữ liệu để phân tích. Vui lòng kiểm tra file đã upload." });
     }
+
+    // Log preview để debug
+    console.log(`📋 Dữ liệu trích xuất: ${fullData.length} ký tự`);
+    console.log(`📋 Preview 500 ký tự đầu:\n${fullData.substring(0, 500)}`);
 
     const systemPrompt = `Bạn là chuyên gia kiểm toán và kế toán tài chính với kinh nghiệm sâu rộng về:
 - Chuẩn mực kế toán Việt Nam (VAS) và Thông tư 200/2014/TT-BTC
 - Chuẩn mực báo cáo tài chính quốc tế (IFRS)
 - Phân tích báo cáo tài chính doanh nghiệp
+
+**NGUYÊN TẮC TUYỆT ĐỐI:**
+- CHỈ sử dụng dữ liệu được cung cấp bên dưới. KHÔNG được tự bịa, suy luận, hoặc thêm bất kỳ số liệu nào không có trong dữ liệu gốc.
+- Giữ nguyên 100% ngày tháng năm, tên đơn vị, số liệu như trong dữ liệu gốc. KHÔNG thay đổi năm hay bất kỳ thông tin nào.
+- Nếu dữ liệu ghi kỳ 01/03/2026 đến 31/03/2026 thì phải ghi đúng như vậy, KHÔNG đổi thành năm khác.
 
 Khi phân tích báo cáo cân đối kế toán, bạn cần:
 1. Kiểm tra tính cân đối: Tổng Tài sản = Tổng Nguồn vốn
@@ -177,14 +135,16 @@ Khi phân tích báo cáo cân đối kế toán, bạn cần:
 - Kiểm tra số dư từng tài khoản chi tiết
 - Phát hiện các bất thường ở cấp chi tiết
 
-Trả lời bằng tiếng Việt. QUAN TRỌNG: Sử dụng đúng ngày tháng năm từ dữ liệu gốc, KHÔNG được tự ý thay đổi năm. Nếu dữ liệu ghi kỳ báo cáo năm 2026 thì phải ghi đúng 2026. Format Markdown:
+Trả lời bằng tiếng Việt. Format Markdown:
 ## 🔍 Kiểm tra cân đối
 ## 📋 Phân tích theo tài khoản chi tiết
 ## ⚠️ Các vấn đề phát hiện
 ## 📊 Phân tích chỉ số tài chính
 ## 💡 Tư vấn và khuyến nghị`;
 
-    const userMessage = `Hãy phân tích báo cáo cân đối kế toán sau:\n\n${fullChart ? `HỆ THỐNG TÀI KHOẢN KẾ TOÁN:\n${fullChart}\n\n` : ""}DỮ LIỆU BÁO CÁO CÂN ĐỐI KẾ TOÁN:\n${fullData}`;
+    const userMessage = `Hãy phân tích báo cáo cân đối kế toán sau. CHỈ SỬ DỤNG DỮ LIỆU DƯỚI ĐÂY, KHÔNG TỰ BỊA SỐ LIỆU:
+
+${fullChart ? `HỆ THỐNG TÀI KHOẢN KẾ TOÁN:\n${fullChart}\n\n` : ""}DỮ LIỆU BÁO CÁO CÂN ĐỐI KẾ TOÁN:\n${fullData}`;
 
     console.log("🤖 Gọi Gemini API qua proxy...");
 
@@ -207,7 +167,6 @@ Trả lời bằng tiếng Việt. QUAN TRỌNG: Sử dụng đúng ngày tháng
 
     console.log("✅ Streaming kết quả phân tích...");
 
-    // Stream response về client
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -229,7 +188,9 @@ app.post("/api/follow-up-analysis", async (req, res) => {
       return res.status(400).json({ error: "Vui lòng nhập yêu cầu phân tích." });
     }
 
-    const systemPrompt = `Bạn là chuyên gia kiểm toán và kế toán tài chính. Tiếp tục phân tích dựa trên ngữ cảnh cuộc hội thoại. Trả lời bằng tiếng Việt, format Markdown.`;
+    const systemPrompt = `Bạn là chuyên gia kiểm toán và kế toán tài chính. Tiếp tục phân tích dựa trên ngữ cảnh cuộc hội thoại. 
+NGUYÊN TẮC: CHỈ sử dụng dữ liệu đã được cung cấp trước đó, KHÔNG tự bịa số liệu. Giữ nguyên ngày tháng năm gốc.
+Trả lời bằng tiếng Việt, format Markdown.`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -266,7 +227,6 @@ app.post("/api/follow-up-analysis", async (req, res) => {
 app.get("/api/health", async (req, res) => {
   const checks = { server: "ok", database: "unknown", proxy: "unknown", gemini: "unknown" };
 
-  // Test DB
   try {
     await pool.query("SELECT 1");
     checks.database = "ok";
@@ -274,7 +234,6 @@ app.get("/api/health", async (req, res) => {
     checks.database = `error: ${e.message}`;
   }
 
-  // Test proxy + Gemini
   try {
     const { default: fetch } = await import("node-fetch");
     const fetchOpts = { method: "GET" };
@@ -312,6 +271,7 @@ app.listen(PORT, HOST, () => {
 ║  🌐 http://${HOST}:${PORT}                        ║
 ║  🔒 Proxy: ${proxyAgent ? proxyUrl : "Không"}     ║
 ║  💾 DB: ${process.env.DB_HOST || "10.24.16.77"}   ║
+║  📂 Trích xuất file: LOCAL (pdf-parse, mammoth)  ║
 ╚══════════════════════════════════════════════════╝
   `);
 });
