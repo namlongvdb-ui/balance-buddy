@@ -1,6 +1,6 @@
 {
   "name": "balance-sheet-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Backend server phân tích cân đối kế toán - hỗ trợ proxy WAN",
   "main": "server.js",
   "scripts": {
@@ -13,7 +13,10 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.1",
     "https-proxy-agent": "^7.0.6",
+    "mammoth": "^1.8.0",
     "node-fetch": "^3.3.2",
-    "pg": "^8.13.1"
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.1",
+    "xlsx": "^0.18.5"
   }
 }
