@@ -82,6 +82,9 @@ async function callGeminiAPI(body) {
   return fetch(url, fetchOptions);
 }
 
+// Inject Gemini caller vào file-extractor để trích xuất PDF qua Vision API
+setGeminiCaller((body) => callGeminiAPI(body));
+
 // ===== API: Phân tích cân đối kế toán =====
 app.post("/api/analyze-balance-sheet", async (req, res) => {
   try {
