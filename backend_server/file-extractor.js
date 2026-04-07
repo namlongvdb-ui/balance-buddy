@@ -61,13 +61,16 @@ async function extractPDFViaGemini(base64, fileName) {
 
   const extractionPrompt = `Bạn là chuyên gia trích xuất dữ liệu tài chính từ file PDF.
 
-NHIỆM VỤ: Trích xuất TOÀN BỘ nội dung bảng cân đối kế toán từ file PDF này.
+NHIỆM VỤ QUAN TRỌNG NHẤT: Trích xuất TOÀN BỘ 100% nội dung từ TẤT CẢ CÁC TRANG của file PDF này.
+File PDF này có NHIỀU TRANG. Bạn PHẢI đọc và trích xuất dữ liệu từ TỪNG TRANG MỘT, từ trang đầu tiên đến trang cuối cùng.
+KHÔNG ĐƯỢC DỪNG LẠI giữa chừng. KHÔNG ĐƯỢC bỏ sót bất kỳ trang nào.
 
 YÊU CẦU TUYỆT ĐỐI:
-1. GIỮ NGUYÊN 100% tất cả số liệu, ngày tháng năm, tên đơn vị như trong file gốc
-2. PHÂN BIỆT RÕ RÀNG cột NỢ và cột CÓ - đây là yêu cầu quan trọng nhất
-3. Với mỗi dòng tài khoản, ghi rõ: số dư đầu kỳ (Nợ/Có), phát sinh trong kỳ (Nợ/Có), lũy kế từ đầu năm (Nợ/Có), số dư cuối kỳ (Nợ/Có)
-4. Nếu một ô trống (không có số liệu), ghi rõ là "0" hoặc để trống, KHÔNG được tự bịa số
+1. ĐỌC TẤT CẢ CÁC TRANG - từ Loại 1 đến Loại 8 (hoặc hết dữ liệu). Nếu PDF có 6 trang thì phải đọc đủ 6 trang.
+2. GIỮ NGUYÊN 100% tất cả số liệu, ngày tháng năm, tên đơn vị như trong file gốc
+3. PHÂN BIỆT RÕ RÀNG cột NỢ và cột CÓ - đây là yêu cầu quan trọng nhất
+4. Với mỗi dòng tài khoản, ghi rõ: số dư đầu kỳ (Nợ/Có), phát sinh trong kỳ (Nợ/Có), lũy kế từ đầu năm (Nợ/Có), số dư cuối kỳ (Nợ/Có)
+5. Nếu một ô trống (không có số liệu), ghi rõ là "0" hoặc để trống, KHÔNG được tự bịa số
 
 FORMAT OUTPUT - Mỗi dòng tài khoản phải theo format:
 Mã TK: [mã] | Tên: [tên tài khoản] | Dư đầu kỳ Nợ: [số] | Dư đầu kỳ Có: [số] | PS trong kỳ Nợ: [số] | PS trong kỳ Có: [số] | LK Nợ: [số] | LK Có: [số] | Dư cuối kỳ Nợ: [số] | Dư cuối kỳ Có: [số]
@@ -77,7 +80,9 @@ LƯU Ý ĐẶC BIỆT:
 - Tài khoản nguồn vốn (loại 6) có số dư bên CÓ
 - Tài khoản tài sản (loại 1, 2) thường có số dư bên NỢ
 - NHÌN KỸ vị trí cột trong bảng PDF để xác định đúng cột Nợ hay Có
+- Loại 7 (Thu nhập) và Loại 8 (Chi phí) PHẢI được trích xuất đầy đủ
 
+KIỂM TRA CUỐI CÙNG: Sau khi trích xuất xong, xác nhận bạn đã có dữ liệu từ TẤT CẢ các loại tài khoản có trong file.
 Chỉ trả về dữ liệu trích xuất, không thêm nhận xét hay phân tích.`;
 
   const response = await _callGeminiForExtraction({
@@ -97,7 +102,7 @@ Chỉ trả về dữ liệu trích xuất, không thêm nhận xét hay phân t
       },
     ],
     stream: false,
-    max_tokens: 32000,
+    max_tokens: 65000,
   });
 
   if (!response.ok) {
