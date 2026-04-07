@@ -177,7 +177,7 @@ Khi phân tích báo cáo cân đối kế toán, bạn cần:
 - Kiểm tra số dư từng tài khoản chi tiết
 - Phát hiện các bất thường ở cấp chi tiết
 
-Trả lời bằng tiếng Việt. Format Markdown:
+Trả lời bằng tiếng Việt. QUAN TRỌNG: Sử dụng đúng ngày tháng năm từ dữ liệu gốc, KHÔNG được tự ý thay đổi năm. Nếu dữ liệu ghi kỳ báo cáo năm 2026 thì phải ghi đúng 2026. Format Markdown:
 ## 🔍 Kiểm tra cân đối
 ## 📋 Phân tích theo tài khoản chi tiết
 ## ⚠️ Các vấn đề phát hiện
