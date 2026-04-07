@@ -7,27 +7,48 @@ export interface ChatMessage {
   content: string;
 }
 
+async function fileToBase64(file: File): Promise<{ name: string; base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1];
+      resolve({ name: file.name, base64, mimeType: file.type });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function streamFollowUp({
   conversationHistory,
   followUpQuestion,
+  files,
   onDelta,
   onDone,
   onError,
 }: {
   conversationHistory: ChatMessage[];
   followUpQuestion: string;
+  files?: File[];
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
 }) {
   try {
+    // Convert files to base64 for server-side extraction
+    let filesPayload: { name: string; base64: string; mimeType: string }[] | undefined;
+    if (files && files.length > 0) {
+      filesPayload = await Promise.all(files.map(fileToBase64));
+    }
+
     const resp = await fetch(FOLLOW_UP_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(import.meta.env.VITE_API_BASE_URL ? {} : { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }),
       },
-      body: JSON.stringify({ conversationHistory, followUpQuestion }),
+      body: JSON.stringify({ conversationHistory, followUpQuestion, files: filesPayload }),
     });
 
     if (resp.status === 429) {
