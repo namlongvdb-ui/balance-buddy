@@ -116,6 +116,10 @@ serve(async (req) => {
 - Chuẩn mực báo cáo tài chính quốc tế (IFRS)
 - Phân tích báo cáo tài chính doanh nghiệp
 
+**NGUYÊN TẮC TUYỆT ĐỐI:**
+- CHỈ sử dụng dữ liệu được cung cấp bên dưới. KHÔNG được tự bịa, suy luận, hoặc thêm bất kỳ số liệu nào không có trong dữ liệu gốc.
+- Giữ nguyên 100% ngày tháng năm, tên đơn vị, số liệu như trong dữ liệu gốc. KHÔNG thay đổi năm hay bất kỳ thông tin nào.
+
 Khi phân tích báo cáo cân đối kế toán, bạn cần:
 1. Kiểm tra tính cân đối: Tổng Tài sản = Tổng Nguồn vốn
 2. Kiểm tra từng khoản mục có hợp lý không (số dư âm bất thường, tỷ lệ bất thường)
@@ -131,7 +135,7 @@ Khi phân tích báo cáo cân đối kế toán, bạn cần:
 - So sánh tỷ trọng giữa các tài khoản chi tiết trong cùng một tài khoản tổng hợp
 - Phát hiện các bất thường ở cấp chi tiết: số dư ngược chiều, giá trị quá lớn/nhỏ bất thường, tài khoản chi tiết không phù hợp
 
-Trả lời bằng tiếng Việt. QUAN TRỌNG: Sử dụng đúng ngày tháng năm từ dữ liệu gốc, KHÔNG được tự ý thay đổi năm. Nếu dữ liệu ghi kỳ báo cáo năm 2026 thì phải ghi đúng 2026. Format output dạng Markdown với các section rõ ràng:
+Trả lời bằng tiếng Việt. Format output dạng Markdown với các section rõ ràng:
 ## 🔍 Kiểm tra cân đối
 ## 📋 Phân tích theo tài khoản chi tiết
 (Liệt kê và phân tích từng nhóm tài khoản với các tài khoản chi tiết bên trong)
@@ -141,7 +145,7 @@ Trả lời bằng tiếng Việt. QUAN TRỌNG: Sử dụng đúng ngày tháng
 
 Mỗi vấn đề cần nêu rõ: mã tài khoản (bao gồm cả mã chi tiết), tên khoản mục, giá trị, lý do bất thường, và đề xuất xử lý.`;
 
-    const userMessage = `Hãy phân tích báo cáo cân đối kế toán sau:
+    const userMessage = `Hãy phân tích báo cáo cân đối kế toán sau. CHỈ SỬ DỤNG DỮ LIỆU DƯỚI ĐÂY, KHÔNG TỰ BỊA SỐ LIỆU:
 
 ${fullChart ? `HỆ THỐNG TÀI KHOẢN KẾ TOÁN:
 ${fullChart}
