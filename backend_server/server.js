@@ -96,7 +96,7 @@ async function extractTextFromFiles(files, label) {
   const content = [];
   content.push({
     type: "text",
-    text: `Trích xuất toàn bộ nội dung văn bản, số liệu, bảng biểu từ các file ${label} sau đây. Trả về đúng nội dung gốc, giữ nguyên cấu trúc bảng và số liệu. Chỉ trả về nội dung trích xuất, không thêm nhận xét.`,
+    text: `Trích xuất toàn bộ nội dung văn bản, số liệu, bảng biểu từ các file ${label} sau đây. Trả về đúng nội dung gốc, giữ nguyên cấu trúc bảng và số liệu. QUAN TRỌNG: Giữ nguyên 100% tất cả ngày tháng năm như trong file gốc, KHÔNG được thay đổi năm hay bất kỳ thành phần nào của ngày tháng. Ví dụ nếu file ghi "01/03/2026" thì phải trả về đúng "01/03/2026", KHÔNG được đổi thành 2023 hay bất kỳ năm nào khác. Chỉ trả về nội dung trích xuất, không thêm nhận xét.`,
   });
 
   for (const file of files) {
@@ -177,7 +177,7 @@ Khi phân tích báo cáo cân đối kế toán, bạn cần:
 - Kiểm tra số dư từng tài khoản chi tiết
 - Phát hiện các bất thường ở cấp chi tiết
 
-Trả lời bằng tiếng Việt. Format Markdown:
+Trả lời bằng tiếng Việt. QUAN TRỌNG: Sử dụng đúng ngày tháng năm từ dữ liệu gốc, KHÔNG được tự ý thay đổi năm. Nếu dữ liệu ghi kỳ báo cáo năm 2026 thì phải ghi đúng 2026. Format Markdown:
 ## 🔍 Kiểm tra cân đối
 ## 📋 Phân tích theo tài khoản chi tiết
 ## ⚠️ Các vấn đề phát hiện
