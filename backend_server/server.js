@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 const { HttpsProxyAgent } = require("https-proxy-agent");
-const { extractTextFromFiles } = require("./file-extractor");
+const { extractTextFromFiles, setGeminiCaller } = require("./file-extractor");
 
 const app = express();
 const PORT = process.env.PORT || 3002;
