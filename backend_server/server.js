@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 const { HttpsProxyAgent } = require("https-proxy-agent");
-const { extractTextFromFiles } = require("./file-extractor");
+const { extractTextFromFiles, setGeminiCaller } = require("./file-extractor");
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -81,6 +81,9 @@ async function callGeminiAPI(body) {
   const { default: fetch } = await import("node-fetch");
   return fetch(url, fetchOptions);
 }
+
+// Inject Gemini caller vào file-extractor để trích xuất PDF qua Vision API
+setGeminiCaller((body) => callGeminiAPI(body));
 
 // ===== API: Phân tích cân đối kế toán =====
 app.post("/api/analyze-balance-sheet", async (req, res) => {
