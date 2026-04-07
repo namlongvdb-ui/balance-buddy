@@ -103,7 +103,7 @@ const Index = () => {
     });
   };
 
-  const handleFollowUp = async (question: string) => {
+  const handleFollowUp = async (question: string, followUpFiles?: File[]) => {
     setIsFollowingUp(true);
     
     // Build conversation history including initial analysis
@@ -114,13 +114,19 @@ const Index = () => {
       history.push({ role: "assistant", content: analysisContent });
     }
 
+    // Build display question with file names
+    const displayQuestion = followUpFiles && followUpFiles.length > 0
+      ? `${question || "Phân tích file đính kèm"} [📎 ${followUpFiles.map(f => f.name).join(", ")}]`
+      : question;
+
     // Add new follow-up result placeholder
     const newIndex = followUpResults.length;
-    setFollowUpResults((prev) => [...prev, { question, answer: "" }]);
+    setFollowUpResults((prev) => [...prev, { question: displayQuestion, answer: "" }]);
 
     await streamFollowUp({
       conversationHistory: history,
-      followUpQuestion: question,
+      followUpQuestion: question || "Phân tích dữ liệu từ file đính kèm bên dưới",
+      files: followUpFiles,
       onDelta: (text) => {
         setFollowUpResults((prev) => {
           const updated = [...prev];
@@ -130,13 +136,12 @@ const Index = () => {
       },
       onDone: () => {
         setIsFollowingUp(false);
-        // Update conversation history
         setFollowUpResults((prev) => {
           const latest = prev[newIndex];
           setConversationHistory((ch) => [
             ...ch,
             ...(ch.length === 0 && analysisContent ? [{ role: "assistant" as const, content: analysisContent }] : []),
-            { role: "user" as const, content: question },
+            { role: "user" as const, content: displayQuestion },
             { role: "assistant" as const, content: latest.answer },
           ]);
           return prev;
