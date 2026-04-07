@@ -6,6 +6,7 @@
 
 const mammoth = require("mammoth");
 const XLSX = require("xlsx");
+const { PDFDocument } = require("pdf-lib");
 
 // Gemini API caller - sẽ được inject từ server.js
 let _callGeminiForExtraction = null;
@@ -53,74 +54,96 @@ async function extractTextFromBase64(base64, fileName, mimeType) {
  * Giữ nguyên cấu trúc bảng, phân biệt rõ cột Nợ và Có
  */
 async function extractPDFViaGemini(base64, fileName) {
-  console.log(`📄 Trích xuất PDF qua Gemini Vision: ${fileName}`);
+  console.log(`📄 Trích xuất PDF qua Gemini Vision (page-by-page): ${fileName}`);
 
   if (!_callGeminiForExtraction) {
     throw new Error("Gemini caller chưa được cấu hình. Gọi setGeminiCaller() trước.");
   }
 
-  const extractionPrompt = `Bạn là chuyên gia trích xuất dữ liệu tài chính từ file PDF.
+  // Tách PDF thành từng trang riêng biệt
+  const buffer = Buffer.from(base64, "base64");
+  const pdfDoc = await PDFDocument.load(buffer);
+  const totalPages = pdfDoc.getPageCount();
+  console.log(`   📄 PDF có ${totalPages} trang, sẽ xử lý từng trang...`);
 
-NHIỆM VỤ QUAN TRỌNG NHẤT: Trích xuất TOÀN BỘ 100% nội dung từ TẤT CẢ CÁC TRANG của file PDF này.
-File PDF này có NHIỀU TRANG. Bạn PHẢI đọc và trích xuất dữ liệu từ TỪNG TRANG MỘT, từ trang đầu tiên đến trang cuối cùng.
-KHÔNG ĐƯỢC DỪNG LẠI giữa chừng. KHÔNG ĐƯỢC bỏ sót bất kỳ trang nào.
+  const pageResults = [];
 
-YÊU CẦU TUYỆT ĐỐI:
-1. ĐỌC TẤT CẢ CÁC TRANG - từ Loại 1 đến Loại 8 (hoặc hết dữ liệu). Nếu PDF có 6 trang thì phải đọc đủ 6 trang.
-2. GIỮ NGUYÊN 100% tất cả số liệu, ngày tháng năm, tên đơn vị như trong file gốc
-3. PHÂN BIỆT RÕ RÀNG cột NỢ và cột CÓ - đây là yêu cầu quan trọng nhất
-4. Với mỗi dòng tài khoản, ghi rõ: số dư đầu kỳ (Nợ/Có), phát sinh trong kỳ (Nợ/Có), lũy kế từ đầu năm (Nợ/Có), số dư cuối kỳ (Nợ/Có)
-5. Nếu một ô trống (không có số liệu), ghi rõ là "0" hoặc để trống, KHÔNG được tự bịa số
+  for (let i = 0; i < totalPages; i++) {
+    console.log(`   📄 Đang trích xuất trang ${i + 1}/${totalPages}...`);
 
-FORMAT OUTPUT - Mỗi dòng tài khoản phải theo format:
+    // Tạo PDF mới chỉ chứa 1 trang
+    const singlePageDoc = await PDFDocument.create();
+    const [copiedPage] = await singlePageDoc.copyPages(pdfDoc, [i]);
+    singlePageDoc.addPage(copiedPage);
+    const singlePageBytes = await singlePageDoc.save();
+    const singlePageBase64 = Buffer.from(singlePageBytes).toString("base64");
+
+    const extractionPrompt = `Bạn là chuyên gia trích xuất dữ liệu tài chính từ bảng cân đối kế toán.
+
+ĐÂY LÀ TRANG ${i + 1}/${totalPages} của file PDF.
+
+NHIỆM VỤ: Trích xuất TOÀN BỘ 100% nội dung của trang này, KHÔNG BỎ SÓT bất kỳ dòng nào.
+
+YÊU CẦU:
+1. GIỮ NGUYÊN 100% tất cả số liệu, ngày tháng năm, tên đơn vị
+2. PHÂN BIỆT RÕ RÀNG cột NỢ và cột CÓ
+3. Với mỗi dòng tài khoản, ghi rõ: số dư đầu kỳ (Nợ/Có), phát sinh trong kỳ (Nợ/Có), lũy kế từ đầu năm (Nợ/Có), số dư cuối kỳ (Nợ/Có)
+4. Nếu một ô trống, ghi "0" hoặc để trống, KHÔNG tự bịa số
+5. Trích xuất TẤT CẢ các tài khoản trên trang này, bao gồm cả tài khoản chi tiết (cấp 2, 3, mã chi tiết dạng XXXXXX-XX-XXX-XXX)
+
+FORMAT OUTPUT - Mỗi dòng tài khoản:
 Mã TK: [mã] | Tên: [tên tài khoản] | Dư đầu kỳ Nợ: [số] | Dư đầu kỳ Có: [số] | PS trong kỳ Nợ: [số] | PS trong kỳ Có: [số] | LK Nợ: [số] | LK Có: [số] | Dư cuối kỳ Nợ: [số] | Dư cuối kỳ Có: [số]
 
-LƯU Ý ĐẶC BIỆT:
-- Tài khoản Hao mòn TSCĐ (305, 3051, 3052...) thường có số dư BÊN CÓ, KHÔNG PHẢI bên Nợ
+LƯU Ý:
+- Tài khoản Hao mòn TSCĐ (305, 3051...) thường có số dư BÊN CÓ
 - Tài khoản nguồn vốn (loại 6) có số dư bên CÓ
 - Tài khoản tài sản (loại 1, 2) thường có số dư bên NỢ
-- NHÌN KỸ vị trí cột trong bảng PDF để xác định đúng cột Nợ hay Có
-- Loại 7 (Thu nhập) và Loại 8 (Chi phí) PHẢI được trích xuất đầy đủ
+- NHÌN KỸ vị trí cột trong bảng để xác định đúng Nợ hay Có
+- Nếu trang có header bảng, cũng ghi lại header
 
-KIỂM TRA CUỐI CÙNG: Sau khi trích xuất xong, xác nhận bạn đã có dữ liệu từ TẤT CẢ các loại tài khoản có trong file.
-Chỉ trả về dữ liệu trích xuất, không thêm nhận xét hay phân tích.`;
+Chỉ trả về dữ liệu trích xuất, không thêm nhận xét.`;
 
-  const response = await _callGeminiForExtraction({
-    model: "gemini-2.5-flash",
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: extractionPrompt },
+    try {
+      const response = await _callGeminiForExtraction({
+        model: "gemini-2.5-flash",
+        messages: [
           {
-            type: "image_url",
-            image_url: {
-              url: `data:application/pdf;base64,${base64}`,
-            },
+            role: "user",
+            content: [
+              { type: "text", text: extractionPrompt },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${singlePageBase64}`,
+                },
+              },
+            ],
           },
         ],
-      },
-    ],
-    stream: false,
-    max_tokens: 65000,
-  });
+        stream: false,
+        max_tokens: 16000,
+      });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`❌ Gemini Vision PDF error:`, response.status, errText);
-    // Fallback: thử dùng pdf-parse
-    console.log(`⚠️ Fallback sang pdf-parse...`);
-    const pdfParse = require("pdf-parse");
-    const buffer = Buffer.from(base64, "base64");
-    const data = await pdfParse(buffer);
-    return data.text || `[Không thể trích xuất PDF ${fileName}]`;
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`   ❌ Lỗi trang ${i + 1}:`, response.status, errText);
+        pageResults.push(`[Lỗi trích xuất trang ${i + 1}]`);
+        continue;
+      }
+
+      const result = await response.json();
+      const text = result.choices?.[0]?.message?.content || "";
+      console.log(`   ✅ Trang ${i + 1}: ${text.length} ký tự`);
+      pageResults.push(`--- TRANG ${i + 1}/${totalPages} ---\n${text}`);
+    } catch (err) {
+      console.error(`   ❌ Exception trang ${i + 1}:`, err.message);
+      pageResults.push(`[Lỗi trích xuất trang ${i + 1}: ${err.message}]`);
+    }
   }
 
-  const result = await response.json();
-  const text = result.choices?.[0]?.message?.content || "";
-
-  console.log(`   ✅ Trích xuất PDF qua Vision: ${text.length} ký tự`);
-  return text;
+  const combined = pageResults.join("\n\n");
+  console.log(`   ✅ Hoàn tất trích xuất ${totalPages} trang: ${combined.length} ký tự tổng cộng`);
+  return combined;
 }
 
 /**
