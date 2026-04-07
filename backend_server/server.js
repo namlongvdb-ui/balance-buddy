@@ -5,7 +5,7 @@ const { Pool } = require("pg");
 const { HttpsProxyAgent } = require("https-proxy-agent");
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const HOST = process.env.HOST || "0.0.0.0";
 
 // ===== PROXY AGENT =====
@@ -23,7 +23,7 @@ if (proxyAgent) {
 const pool = new Pool({
   host: process.env.DB_HOST || "10.24.16.77",
   port: parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME || "balance_sheet_db",
+  database: process.env.DB_NAME || "db_can_doi",
   user: process.env.DB_USER || "postgres",
   password: process.env.DB_PASSWORD,
 });
